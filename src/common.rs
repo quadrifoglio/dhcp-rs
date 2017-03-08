@@ -5,7 +5,7 @@
 use std::error::Error as StdError;
 use std::result::Result as StdResult;
 use std::convert::{From, Into};
-use std::fmt::{self, Debug, Formatter};
+use std::fmt::{self, Display, Debug, Formatter};
 use std::io::{self};
 
 /*
@@ -32,6 +32,15 @@ impl Error {
 impl From<io::Error> for Error {
     fn from(e: io::Error) -> Error {
         Error::new(e.description())
+    }
+}
+
+/*
+ * Display trait
+ */
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.msg)
     }
 }
 

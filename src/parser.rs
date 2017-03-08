@@ -2,6 +2,7 @@
  * DHCP Frame parsing
  */
 
+use std::error::Error as StdError;
 use std::vec::Vec;
 use std::io::{self, Cursor, Read};
 
@@ -16,6 +17,51 @@ pub struct Option {
     tag:  u8,      // Option unique identifier
     len:  u8,      // Option length
     data: Vec<u8>  // Option data, 'len' bytes of data
+}
+
+impl Option {
+    /*
+     * Parse an option from a bytes buffer
+     */
+    pub fn parse(buf: &[u8]) -> Result<Option> {
+        if buf.len() < 2 {
+            return Err(Error::new("Frame too short"));
+        }
+
+        println!("mdr {}", buf.len());
+
+        let mut cur = Cursor::new(buf);
+
+        // Parse tag & length
+        let mut first = [0; 2];
+        try!(cur.read_exact(&mut first));
+
+        let tag = first[0];
+        let len = first[1];
+
+        // Get the data
+        let mut data = vec![0; len as usize];
+        try!(cur.read_exact(&mut data));
+
+        // Construct the object
+        Ok(Option {
+            tag: tag,
+            len: len,
+            data: data
+        })
+    }
+
+    /*
+     * Return the value as a string
+     */
+    pub fn value_as_string(&self) -> Result<String> {
+        let data = self.data.clone();
+
+        match String::from_utf8(data) {
+            Ok(s) => Ok(s),
+            Err(e) => Err(Error::new(e.description()))
+        }
+    }
 }
 
 /*
@@ -85,6 +131,23 @@ impl Frame {
         try!(cur.read_exact(&mut sname));
         try!(cur.read_exact(&mut file));
 
+        let mut opts = Vec::new();
+        while cur.position() < buf.len() as u64 {
+            {
+                let buf = cur.get_ref();
+
+                match Option::parse(buf) {
+                    Ok(opt) => opts.push(opt),
+                    Err(e) => return Err(Error::new(format!("Failed to parse option: {}", e)))
+                };
+            }
+
+            let pos = cur.position();
+            let opt = opts.last().unwrap();
+
+            cur.set_position(pos + 2 + opt.data.len() as u64);
+        }
+
         // Construct object
         Ok(Frame {
             op: op,
@@ -101,7 +164,7 @@ impl Frame {
             chaddr: chaddr,
             sname: sname,
             file: file,
-            options: Vec::new()
+            options: opts
         })
     }
 }
@@ -110,14 +173,59 @@ impl Frame {
 mod tests {
     #[test]
     #[should_panic]
-    fn test_empty_invalid() {
+    fn test_option_empty_invalid() {
+        let data = [];
+        super::Option::parse(&data).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_option_too_short_invalid() {
+        let data = [0x00];
+        super::Option::parse(&data).unwrap();
+    }
+
+    #[test]
+    fn test_option_message_type_valid() {
+        let data = [
+            0x35, 0x01, 0x01
+        ];
+
+        let opt = super::Option::parse(&data).unwrap();
+
+        assert_eq!(opt.tag, 53);
+        assert_eq!(opt.len, 1);
+        assert_eq!(opt.data, [0x01]);
+    }
+
+    #[test]
+    fn test_option_vendor_class_valid() {
+        // A valid Vendor ID (60) option
+        let data = [
+            0x3c, 0x20, 0x50, 0x58, 0x45, 0x43, 0x6c, 0x69,
+            0x65, 0x6e, 0x74, 0x3a, 0x41, 0x72, 0x63, 0x68,
+            0x3a, 0x30, 0x30, 0x30, 0x30, 0x30, 0x3a, 0x55,
+            0x4e, 0x44, 0x49, 0x3a, 0x30, 0x30, 0x32, 0x30,
+            0x30, 0x31
+        ];
+
+        let opt = super::Option::parse(&data).unwrap();
+
+        assert_eq!(opt.tag, 60);
+        assert_eq!(opt.len, 32);
+        assert_eq!(opt.value_as_string().unwrap().as_str(), "PXEClient:Arch:00000:UNDI:002001");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_frame_empty_invalid() {
         let data = [];
         super::Frame::parse(&data).unwrap();
     }
 
     #[test]
     #[should_panic]
-    fn test_too_short_invalid() {
+    fn test_frame_too_short_invalid() {
         let data = [
             0x01, 0x01, 0x06, 0x00
         ];
@@ -126,7 +234,7 @@ mod tests {
     }
 
     #[test]
-    fn test_header_valid() {
+    fn test_frame_header_valid() {
         // Valid DHCP Header
         let data = [
             0x01, 0x01, 0x06, 0x00,
