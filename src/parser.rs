@@ -165,6 +165,13 @@ impl Frame {
             options: opts
         })
     }
+
+    /*
+     * Return the client's hardware address as a classical MAC address string
+     */
+    pub fn client_mac_string(&self) -> String {
+        format!("{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}", self.chaddr[0], self.chaddr[1], self.chaddr[2], self.chaddr[3], self.chaddr[4], self.chaddr[5])
+    }
 }
 
 #[cfg(test)]
@@ -288,6 +295,8 @@ mod tests {
         assert_eq!(frame.siaddr.as_slice(), [0x00, 0x00, 0x00, 0x00]);
         assert_eq!(frame.giaddr.as_slice(), [0x00, 0x00, 0x00, 0x00]);
         assert_eq!(frame.chaddr.as_slice(), [0x52, 0x54, 0x01, 0x12, 0x34, 0x56, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+
+        assert_eq!(frame.client_mac_string().as_str(), "52:54:01:12:34:56");
 
         assert_eq!(frame.sname.len(), 64);
         assert_eq!(frame.file.len(), 128);
