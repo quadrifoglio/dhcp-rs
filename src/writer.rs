@@ -84,3 +84,35 @@ impl Option {
         }
     }
 }
+
+impl Frame {
+    /*
+     * Construct a classical (ethernet) DHCP frame
+     */
+    pub fn new(op: u8, xid: u32) -> Frame {
+        Frame {
+            op: op,
+            htype: 0x01,
+            hlen: 6,
+            hops: 0,
+            xid: xid,
+            secs: 0,
+            flags: 0x00,
+            ciaddr: Vec::new(),
+            yiaddr: Vec::new(),
+            siaddr: Vec::new(),
+            giaddr: Vec::new(),
+            chaddr: Vec::new(),
+            sname: Vec::new(),
+            file: Vec::new(),
+            options: Vec::new(),
+        }
+    }
+
+    /*
+     * Add an option to the frame
+     */
+    pub fn add_option(&mut self, opt: Option) {
+        self.options.push(opt);
+    }
+}
