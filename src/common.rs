@@ -9,6 +9,37 @@ use std::fmt::{self, Display, Debug, Formatter};
 use std::io::{self};
 
 /*
+ * Represents a BOOTP/DHCP option
+ */
+pub struct Option {
+    pub tag:  u8,      // Option unique identifier
+    pub len:  u8,      // Option length
+    pub data: Vec<u8>  // Option data, 'len' bytes of data
+}
+
+/*
+ * Represents a complete DHCP frame
+ */
+pub struct Frame {
+    pub op:     u8,      // Opcode
+    pub htype:  u8,      // Hardware address type
+    pub hlen:   u8,      // Hardware address length
+    pub hops:   u8,      // Initially 0, incremented by each relay
+    pub xid:    u32,     // Transation ID
+    pub secs:   u16,     // Seconds elapsed since the process was initiated
+    pub flags:  u16,     // Flags
+    pub ciaddr: Vec<u8>, // Client IP address (not used in DHCP)
+    pub yiaddr: Vec<u8>, // Your/client IP address
+    pub siaddr: Vec<u8>, // Next server IP address
+    pub giaddr: Vec<u8>, // Relay IP address
+    pub chaddr: Vec<u8>, // Client hardware address
+    pub sname:  Vec<u8>, // Server hostname
+    pub file:   Vec<u8>, // Boot file name, if any
+
+    pub options: Vec<Option> // List of BOOTP/DHCP options
+}
+
+/*
  * Error type
  */
 pub struct Error {

@@ -1,11 +1,6 @@
 extern crate byteorder;
 
-mod common;
-mod parser;
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-    }
-}
+pub mod codes;
+pub mod common;
+pub mod parser;
+pub mod server;

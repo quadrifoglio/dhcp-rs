@@ -4,20 +4,11 @@
 
 use std::error::Error as StdError;
 use std::vec::Vec;
-use std::io::{self, Cursor, Read};
+use std::io::{Cursor, Read};
 
 use byteorder::{BigEndian, ReadBytesExt};
 
-use common::{Result, Error};
-
-/*
- * Represents a BOOTP/DHCP option
- */
-pub struct Option {
-    tag:  u8,      // Option unique identifier
-    len:  u8,      // Option length
-    data: Vec<u8>  // Option data, 'len' bytes of data
-}
+use common::{Result, Error, Option, Frame};
 
 impl Option {
     /*
@@ -60,28 +51,6 @@ impl Option {
             Err(e) => Err(Error::new(e.description()))
         }
     }
-}
-
-/*
- * Represents a complete DHCP frame
- */
-pub struct Frame {
-    op:     u8,      // Opcode
-    htype:  u8,      // Hardware address type
-    hlen:   u8,      // Hardware address length
-    hops:   u8,      // Initially 0, incremented by each relay
-    xid:    u32,     // Transation ID
-    secs:   u16,     // Seconds elapsed since the process was initiated
-    flags:  u16,     // Flags
-    ciaddr: Vec<u8>, // Client IP address (not used in DHCP)
-    yiaddr: Vec<u8>, // Your/client IP address
-    siaddr: Vec<u8>, // Next server IP address
-    giaddr: Vec<u8>, // Relay IP address
-    chaddr: Vec<u8>, // Client hardware address
-    sname:  Vec<u8>, // Server hostname
-    file:   Vec<u8>, // Boot file name, if any
-
-    options: Vec<Option> // List of BOOTP/DHCP options
 }
 
 impl Frame {
@@ -135,7 +104,13 @@ impl Frame {
                 let buf = cur.get_ref();
 
                 match Option::parse(buf) {
-                    Ok(opt) => opts.push(opt),
+                    Ok(opt) => {
+                        if opt.tag == 255 {
+                            break
+                        }
+
+                        opts.push(opt)
+                    },
                     Err(e) => return Err(Error::new(format!("Failed to parse option: {}", e)))
                 };
             }
