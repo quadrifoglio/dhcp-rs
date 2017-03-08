@@ -13,29 +13,29 @@ use common::{Result, Error};
  * Represents a BOOTP/DHCP option
  */
 pub struct Option {
-    tag: u8,      // Option unique identifier
-    len: u8,      // Option length
-    data: Vec<u8> // Option data, 'len' bytes of data
+    tag:  u8,      // Option unique identifier
+    len:  u8,      // Option length
+    data: Vec<u8>  // Option data, 'len' bytes of data
 }
 
 /*
  * Represents a complete DHCP frame
  */
 pub struct Frame {
-    op: u8,          // Opcode
-    htype: u8,       // Hardware address type
-    hlen: u8,        // Hardware address length
-    hops: u8,        // Initially 0, incremented by each relay
-    xid: u32,        // Transation ID
-    secs: u16,       // Seconds elapsed since the process was initiated
-    flags: u16,      // Flags
+    op:     u8,      // Opcode
+    htype:  u8,      // Hardware address type
+    hlen:   u8,      // Hardware address length
+    hops:   u8,      // Initially 0, incremented by each relay
+    xid:    u32,     // Transation ID
+    secs:   u16,     // Seconds elapsed since the process was initiated
+    flags:  u16,     // Flags
     ciaddr: Vec<u8>, // Client IP address (not used in DHCP)
     yiaddr: Vec<u8>, // Your/client IP address
     siaddr: Vec<u8>, // Next server IP address
     giaddr: Vec<u8>, // Relay IP address
     chaddr: Vec<u8>, // Client hardware address
-    sname: String,   // Server hostname
-    file: String,    // Boot file name, if any
+    sname:  Vec<u8>, // Server hostname
+    file:   Vec<u8>, // Boot file name, if any
 
     options: Vec<Option> // List of BOOTP/DHCP options
 }
@@ -54,15 +54,18 @@ impl Frame {
 
         try!(cur.read_exact(&mut first));
 
+        // Parse first line, opcode, htype, hlen and hops
         let op = first[0];
         let htype = first[1];
         let hlen = first[2];
         let hops = first[3];
 
+        // Parse xid, secs, flags
         let xid = try!(cur.read_u32::<BigEndian>());
         let secs = try!(cur.read_u16::<BigEndian>());
         let flags = try!(cur.read_u16::<BigEndian>());
 
+        // Parse adresses
         let mut ciaddr = vec![0; 4];
         let mut yiaddr = vec![0; 4];
         let mut siaddr = vec![0; 4];
@@ -75,6 +78,14 @@ impl Frame {
         try!(cur.read_exact(&mut giaddr));
         try!(cur.read_exact(&mut chaddr));
 
+        // Parse strings
+        let mut sname = vec![0; 64];
+        let mut file = vec![0; 128];
+
+        try!(cur.read_exact(&mut sname));
+        try!(cur.read_exact(&mut file));
+
+        // Construct object
         Ok(Frame {
             op: op,
             htype: htype,
@@ -88,8 +99,8 @@ impl Frame {
             siaddr: siaddr,
             giaddr: giaddr,
             chaddr: chaddr,
-            sname: String::new(),
-            file: String::new(),
+            sname: sname,
+            file: file,
             options: Vec::new()
         })
     }
@@ -116,6 +127,7 @@ mod tests {
 
     #[test]
     fn test_header_valid() {
+        // Valid DHCP Header
         let data = [
             0x01, 0x01, 0x06, 0x00,
             0x6e, 0x86, 0x44, 0x4c,
@@ -126,6 +138,58 @@ mod tests {
             0x00, 0x00, 0x00, 0x00,
             0x52, 0x54, 0x01, 0x12,
             0x34, 0x56, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+
+            // sname
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+
+            // file
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
         ];
@@ -145,5 +209,8 @@ mod tests {
         assert_eq!(frame.siaddr.as_slice(), [0x00, 0x00, 0x00, 0x00]);
         assert_eq!(frame.giaddr.as_slice(), [0x00, 0x00, 0x00, 0x00]);
         assert_eq!(frame.chaddr.as_slice(), [0x52, 0x54, 0x01, 0x12, 0x34, 0x56, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+
+        assert_eq!(frame.sname.len(), 64);
+        assert_eq!(frame.file.len(), 128);
     }
 }
