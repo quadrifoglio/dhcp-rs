@@ -83,6 +83,19 @@ impl Option {
             Err(e) => Err(Error::new(e.description()))
         }
     }
+
+    /*
+     * Get the binary representation of an option
+     */
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(2 + self.data.len());
+
+        buf.push(self.tag);
+        buf.push(self.len);
+        buf.extend(self.data.iter());
+
+        buf
+    }
 }
 
 impl Frame {
@@ -98,13 +111,13 @@ impl Frame {
             xid: xid,
             secs: 0,
             flags: 0x00,
-            ciaddr: Vec::new(),
-            yiaddr: Vec::new(),
-            siaddr: Vec::new(),
-            giaddr: Vec::new(),
-            chaddr: Vec::new(),
-            sname: Vec::new(),
-            file: Vec::new(),
+            ciaddr: vec![0; 4],
+            yiaddr: vec![0; 4],
+            siaddr: vec![0; 4],
+            giaddr: vec![0; 4],
+            chaddr: vec![0; 16],
+            sname: vec![0; 64],
+            file: vec![0; 128],
             options: Vec::new(),
         }
     }
@@ -114,5 +127,36 @@ impl Frame {
      */
     pub fn add_option(&mut self, opt: Option) {
         self.options.push(opt);
+    }
+
+    /*
+     * Get the binary representation of a frame
+     */
+    pub fn to_bytes(&self) -> Result<Vec<u8>> {
+        let mut buf = Vec::with_capacity(236);
+
+        // One byte fields, first line
+        buf.push(self.op);
+        buf.push(self.htype);
+        buf.push(self.hlen);
+        buf.push(self.hops);
+
+        // 2nd and 3rd line
+        try!(buf.write_u32::<BigEndian>(self.xid));
+        try!(buf.write_u16::<BigEndian>(self.secs));
+        try!(buf.write_u16::<BigEndian>(self.flags));
+
+        // Adresses
+        buf.extend(self.ciaddr.iter());
+        buf.extend(self.yiaddr.iter());
+        buf.extend(self.siaddr.iter());
+        buf.extend(self.giaddr.iter());
+        buf.extend(self.chaddr.iter());
+
+        // Strings
+        buf.extend(self.sname.iter());
+        buf.extend(self.file.iter());
+
+        Ok(buf)
     }
 }
