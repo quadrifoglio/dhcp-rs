@@ -5,6 +5,7 @@
 use std::error::Error as StdError;
 use std::vec::Vec;
 use std::io::{Cursor, Read};
+use std::option;
 
 use byteorder::{BigEndian, ReadBytesExt};
 
@@ -98,10 +99,15 @@ impl Frame {
         try!(cur.read_exact(&mut sname));
         try!(cur.read_exact(&mut file));
 
+        // Magic cookie
+        let mut cookie = vec![0; 4];
+        try!(cur.read_exact(&mut cookie));
+
         let mut opts = Vec::new();
         while cur.position() < buf.len() as u64 {
             {
                 let buf = cur.get_ref();
+                let buf = &buf[cur.position() as usize..];
 
                 match Option::parse(buf) {
                     Ok(opt) => {
@@ -146,6 +152,19 @@ impl Frame {
      */
     pub fn client_mac_string(&self) -> String {
         format!("{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}", self.chaddr[0], self.chaddr[1], self.chaddr[2], self.chaddr[3], self.chaddr[4], self.chaddr[5])
+    }
+
+    /*
+     * Get an option
+     */
+    pub fn option(&self, tag: u8) -> option::Option<&Option> {
+        for opt in &self.options {
+            if opt.tag == tag {
+                return Some(opt);
+            }
+        }
+
+        None
     }
 }
 

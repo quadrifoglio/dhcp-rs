@@ -157,6 +157,14 @@ impl Frame {
         buf.extend(self.sname.iter());
         buf.extend(self.file.iter());
 
+        // DHCP Magic cookie
+        buf.extend(vec![0x63, 0x82, 0x53, 0x63]);
+
+        // Options
+        for opt in self.options.iter() {
+            buf.extend(opt.to_bytes());
+        }
+
         Ok(buf)
     }
 }
