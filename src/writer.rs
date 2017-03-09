@@ -30,6 +30,14 @@ impl Option {
     }
 
     /*
+     * Sen an option's data as an ip address
+     */
+    pub fn set_data_ip(&mut self, a: u8, b: u8, c: u8, d: u8) {
+        self.len = 4;
+        self.data = vec![a, b, c, d];
+    }
+
+    /*
      * Set an option's data as a string
      */
     pub fn set_data_str(&mut self, data: &str) {
@@ -120,6 +128,19 @@ impl Frame {
             file: vec![0; 128],
             options: Vec::new(),
         }
+    }
+
+    /*
+     * Construct a DHCP response
+     */
+    pub fn response(xid: u32, client_mac: Vec<u8>, client_ip: Vec<u8>, server_ip: Vec<u8>) -> Frame {
+        let mut f = Frame::new(2, xid);
+        f.yiaddr = client_ip;
+        f.siaddr = server_ip;
+        f.chaddr = client_mac;
+        f.flags = 0x8000;
+
+        f
     }
 
     /*

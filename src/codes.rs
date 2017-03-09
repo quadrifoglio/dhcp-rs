@@ -5,6 +5,12 @@
 pub const BOOTP_REQUEST:  u8 = 0x01;
 pub const BOOTP_RESPONSE: u8 = 0x02;
 
+pub const DHCP_DISCOVER: u8 = 1;
+pub const DHCP_OFFER:    u8 = 2;
+pub const DHCP_REQUEST:  u8 = 3;
+pub const DHCP_ACK:      u8 = 5;
+pub const DHCP_NACK:     u8 = 6;
+
 pub const OPTION_PAD:                u8 = 0;
 pub const OPTION_SUBNET_MASK:        u8 = 1;
 pub const OPTION_TIME_OFFSET:        u8 = 2;
